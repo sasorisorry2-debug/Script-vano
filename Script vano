@@ -18,11 +18,6 @@ end)
 
 local Notifier = Compkiller.newNotify();
 
-local ConfigManager = Compkiller:ConfigManager({
-	Directory = "Compkiller-UI",
-	Config = "Example-Configs"
-});
-
 Compkiller:Loader("rbxassetid://72788619889737" , 2.5).yield();
 
 local Window = Compkiller.new({
@@ -73,8 +68,8 @@ Window:DrawCategory({
 });
 
 local NormalTab = Window:DrawTab({
-	Name = "Example Tab",
-	Icon = "apple",
+	Name = "Main",
+	Icon = "sword",
 	EnableScrolling = true
 });
 
@@ -129,7 +124,7 @@ SpeedSlider = NormalSection:AddSlider({
 
 
 local NormalSectionRight = NormalTab:DrawSection({
-	Name = "Visual", -- Переименовано в Visual
+	Name = "Visual",
 	Position = 'right'
 });
 
@@ -151,8 +146,8 @@ NormalSectionRight:AddToggle({
 -- Конец функции ESP
 
 local SingleTab = Window:DrawTab({
-	Name = "Single Tab",
-	Icon = "banana",
+	Name = "General Tab",
+	Icon = "fire", -- Иконка заменена на fire
 	Type = "Single"
 });
 
@@ -351,11 +346,3 @@ ThemeTab:DrawSection({
 		Compkiller:SetTheme(v)
 	end,
 })
-
-local ConfigUI = Window:DrawConfig({
-	Name = "Config",
-	Icon = "folder",
-	Config = ConfigManager
-});
-
-ConfigUI:Init();
