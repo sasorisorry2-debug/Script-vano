@@ -1,22 +1,71 @@
-local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
+-- =========================================================================
+-- ||                              VANO-HUB                               ||
+-- =========================================================================
 
+-- Инициализация Compkiller
+local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
+local Notifier = Compkiller.newNotify();
+
+-- Сервисы
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- ====================
+-- || ГЛОБАЛЬНЫЕ НАСТРОЙКИ ФУНКЦИЙ
+-- ====================
 local InfiniteJumpEnabled = false
 local SpeedEnabled = false 
+local OriginalWalkSpeed = 16 -- Будет обновлено
+local HealthBarEnabled = false -- Для ESP
 
+-- ESP Переменные
+local espConnections = {}
+local espRun = nil
+local Holder = nil
+
+-- TP Переменные
+local CurrentTarget = nil
+local CurrentTweenSpeed = 5 -- Значение по умолчанию: 50 / 10 = 5 секунд
+
+-- ====================
+-- || ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+-- ====================
+
+local function getHumanoid(player)
+	return player and player.Character and player.Character:FindFirstChildOfClass('Humanoid')
+end
+
+local function getHRP(player)
+	return player and player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+end
+
+-- Обновление оригинальной скорости 
+task.spawn(function()
+	local Humanoid = getHumanoid(LocalPlayer)
+	if Humanoid then
+		OriginalWalkSpeed = Humanoid.WalkSpeed
+	end
+end)
+
+-- Infinite Jump (ИСПРАВЛЕНО)
 UserInputService.JumpRequest:Connect(function()
 	if InfiniteJumpEnabled then
-		local Character = Players.LocalPlayer.Character
-		local Humanoid = Character and Character:FindFirstChildOfClass('Humanoid')
+		local Character = LocalPlayer.Character
+		local Humanoid = getHumanoid(LocalPlayer)
 		
-		if Humanoid then
+		if Humanoid and Character and Character.PrimaryPart then
 			Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			-- Принудительный прыжок
+			Character.PrimaryPart.AssemblyLinearVelocity = Character.PrimaryPart.CFrame.UpVector * Humanoid.JumpPower
 		end
 	end
 end)
 
-local Notifier = Compkiller.newNotify();
+-- =========================================================================
+-- ||                                 GUI ЛОГИКА
+-- =========================================================================
 
 Compkiller:Loader("rbxassetid://72788619889737" , 2.5).yield();
 
@@ -35,37 +84,20 @@ Notifier.new({
 	Icon = "rbxassetid://72788619889737"
 });
 
+-- Вотермарка
 local Watermark = Window:Watermark();
+Watermark:AddText({ Icon = "user", Text = "RShome" });
+Watermark:AddText({ Icon = "clock", Text = Compkiller:GetDate() });
 
-Watermark:AddText({
-	Icon = "user",
-	Text = "RShome",
-});
-
-Watermark:AddText({
-	Icon = "clock",
-	Text = Compkiller:GetDate(),
-});
-
-local Time = Watermark:AddText({
-	Icon = "timer",
-	Text = "TIME",
-});
-
+local Time = Watermark:AddText({ Icon = "timer", Text = "TIME" });
 task.spawn(function()
-	while true do task.wait()
+	while true do task.wait(1)
 		Time:SetText(Compkiller:GetTimeNow());
 	end
 end)
+Watermark:AddText({ Icon = "server", Text = Compkiller.Version });
 
-Watermark:AddText({
-	Icon = "server",
-	Text = Compkiller.Version,
-});
-
-Window:DrawCategory({
-	Name = "Example"
-});
+Window:DrawCategory({ Name = "Example" });
 
 local NormalTab = Window:DrawTab({
 	Name = "Main",
@@ -78,6 +110,7 @@ local NormalSection = NormalTab:DrawSection({
 	Position = 'left'	
 });
 
+-- 1. Infinite Jump
 NormalSection:AddToggle({
 	Name = "Infinite Jump",
 	Default = false,
@@ -87,17 +120,18 @@ NormalSection:AddToggle({
 });
 
 local SpeedSlider
+-- 2. Speed 
 NormalSection:AddToggle({
 	Name = "Speed",
 	Default = false,
 	Callback = function(v)
 		SpeedEnabled = v
 		
-		local Player = Players.LocalPlayer
-		local Humanoid = Player and Player.Character and Player.Character:FindFirstChildOfClass('Humanoid')
+		local Humanoid = getHumanoid(LocalPlayer)
 		
 		if Humanoid then
-			local targetSpeed = v and SpeedSlider:GetValue() or 16
+			-- Возвращаем OriginalWalkSpeed при выключении
+			local targetSpeed = v and SpeedSlider:GetValue() or OriginalWalkSpeed 
 			sethiddenproperty(Humanoid, "WalkSpeed", targetSpeed)
 		end
 	end,
@@ -112,8 +146,7 @@ SpeedSlider = NormalSection:AddSlider({
 	Unit = "WalkSpeed",
 	Callback = function(v)
 		if SpeedEnabled then
-			local Player = Players.LocalPlayer
-			local Humanoid = Player and Player.Character and Player.Character:FindFirstChildOfClass('Humanoid')
+			local Humanoid = getHumanoid(LocalPlayer)
 			
 			if Humanoid then
 				sethiddenproperty(Humanoid, "WalkSpeed", v)
@@ -122,42 +155,144 @@ SpeedSlider = NormalSection:AddSlider({
 	end
 });
 
-NormalSection:AddButton({
-	Name = "Fly V3 (Open GUI)",
-	Callback = function()
-		local main = game.Players.LocalPlayer.PlayerGui:FindFirstChild("main")
-		if main then
-			main:Destroy()
-			Notifier.new({
-				Title = "Fly V3",
-				Content = "Fly GUI was closed.",
-				Duration = 3,
-				Icon = "rbxassetid://72788619889737"
-			})
-			return
-		end
-		
-		Notifier.new({
-			Title = "Fly V3",
-			Content = "Fly GUI was activated. Look for the window.",
-			Duration = 5,
-			Icon = "rbxassetid://72788619889737"
-		})
-	end,
-});
-
-
 local NormalSectionRight = NormalTab:DrawSection({
 	Name = "Visual",
 	Position = 'right'
 });
 
--- == ESP FUNCTIONALITY START ==
-local espConnections = {}
-local espRun = nil
-local Holder = nil
-local HealthBarEnabled = false -- НОВАЯ ПЕРЕМЕННАЯ ДЛЯ ЗДОРОВЬЯ
+-- ====================
+-- || ФУНКЦИИ ESP 
+-- ====================
 
+local function UnloadCharacter(v)
+	local vHolder = Holder:FindFirstChild(v.Name)
+	if vHolder then
+		vHolder:ClearAllChildren()
+	end
+end
+
+local function highlightEsp(target, color)
+	local char = target.Character
+	if char then
+		local hrp = getHRP(target)
+		if hrp then
+			local highlight = char:FindFirstChild("VANO_Highlight") or Instance.new("Highlight")
+			if not highlight.Parent then
+				highlight.RobloxLocked = true
+				highlight.Name = "VANO_Highlight"
+				highlight.Adornee = char
+				highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+				highlight.Parent = char
+			end
+			highlight.FillColor = color
+		end
+	end
+end
+
+local function LoadCharacter(v, BoxTemplate, NameTagTemplate, HealthTagTemplate)
+	repeat task.wait() until v.Character and getHumanoid(v) and getHRP(v)
+	local Humanoid = getHumanoid(v)
+	if not Humanoid then return UnloadCharacter(v) end
+	
+	local vHolder = Holder:FindFirstChild(v.Name) or Instance.new("Folder", Holder)
+	vHolder.Name = v.Name
+	vHolder:ClearAllChildren()
+	
+	local char = v.Character
+	
+	local b = BoxTemplate:Clone()
+	b.Name = v.Name .. "Box"
+	b.Adornee = char
+	b.Parent = vHolder
+	
+	local t = NameTagTemplate:Clone()
+	t.Name = v.Name .. "NameTag"
+	t.Enabled = true
+	t.Parent = vHolder
+	t.Adornee = char:WaitForChild("Head", 5)
+	if not t.Adornee then
+		return UnloadCharacter(v)
+	end
+	
+	t.Tag.Text = v.Name
+	b.Color3 = v.TeamColor.Color
+	t.Tag.TextColor3 = v.TeamColor.Color
+
+	-- СОЗДАНИЕ МЕТКИ ЗДОРОВЬЯ
+	local HealthTag = HealthTagTemplate:Clone()
+	HealthTag.Name = v.Name .. "HealthTag"
+	HealthTag.Enabled = HealthBarEnabled 
+	HealthTag.Parent = vHolder
+	HealthTag.Adornee = t.Adornee
+	local HealthText = HealthTag:FindFirstChild("HealthText")
+	
+	local Update = nil
+	local function UpdateNameTag()
+		if not char or not getHumanoid(v) then
+			if espConnections[v.Name] then espConnections[v.Name]:Disconnect() end
+			return UnloadCharacter(v)
+		end
+		
+		-- ЛОГИКА ОБНОВЛЕНИЯ ЗДОРОВЬЯ
+		local currentHealth = math.ceil(Humanoid.Health)
+		local maxHealth = Humanoid.MaxHealth
+
+		if HealthText then
+			HealthText.Text = "HP: " .. currentHealth
+			
+			-- Изменение цвета в зависимости от здоровья
+			if currentHealth < maxHealth * 0.25 then
+				HealthText.TextColor3 = Color3.fromRGB(255, 0, 0)
+			elseif currentHealth < maxHealth * 0.5 then
+				HealthText.TextColor3 = Color3.fromRGB(255, 255, 0) 
+			else
+				HealthText.TextColor3 = Color3.fromRGB(0, 255, 0)
+			end
+		end
+		
+		Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	end
+	
+	Update = Humanoid.Changed:Connect(UpdateNameTag)
+	if espConnections[v.Name] then espConnections[v.Name]:Disconnect() end
+	espConnections[v.Name] = Update
+	UpdateNameTag()
+end
+
+local function LoadPlayer(p, BoxTemplate, NameTagTemplate, HealthTagTemplate)
+	local vHolder = Holder:FindFirstChild(p.Name) or Instance.new("Folder", Holder)
+	vHolder.Name = p.Name
+
+	espConnections[p.Name .. "CharAdded"] = p.CharacterAdded:Connect(function() pcall(LoadCharacter, p, BoxTemplate, NameTagTemplate, HealthTagTemplate) end)
+	espConnections[p.Name .. "CharRemoving"] = p.CharacterRemoving:Connect(function() pcall(UnloadCharacter, p) end)
+	
+	-- Добавлена логика обновления ESP при смене команды
+	espConnections[p.Name .. "TeamChanged"] = p.Changed:Connect(function(prop)
+		if prop == "TeamColor" then
+			UnloadCharacter(p)
+			task.wait()
+			LoadCharacter(p, BoxTemplate, NameTagTemplate, HealthTagTemplate)
+		end
+	end)
+	
+	LoadCharacter(p, BoxTemplate, NameTagTemplate, HealthTagTemplate)
+end
+
+local function UnloadPlayer(p)
+	UnloadCharacter(p)
+	local vHolder = Holder:FindFirstChild(p.Name)
+	if vHolder then
+		vHolder:Destroy()
+	end
+	for k, conn in pairs(espConnections) do
+		if k:match(p.Name) then
+			conn:Disconnect()
+			espConnections[k] = nil
+		end
+	end
+end
+
+-- 3. Toggle ESP
 NormalSectionRight:AddToggle({
 	Name = "ESP",
 	Default = false,
@@ -171,22 +306,23 @@ NormalSectionRight:AddToggle({
 			Holder.Name = "VANO_ESP_Holder"
 			Holder.Parent = game.CoreGui
 			
-			local Box = Instance.new("BoxHandleAdornment")
-			Box.Name = "nilBox"
-			Box.Size = Vector3.new(1, 2, 1)
-			Box.Color3 = Color3.new(100 / 255, 100 / 255, 100 / 255)
-			Box.Transparency = 0.7
-			Box.ZIndex = 0
-			Box.AlwaysOnTop = false
-			Box.Visible = false
+			-- Шаблоны (Templates)
+			local BoxTemplate = Instance.new("BoxHandleAdornment")
+			BoxTemplate.Name = "nilBox"
+			BoxTemplate.Size = Vector3.new(1, 2, 1)
+			BoxTemplate.Color3 = Color3.new(100 / 255, 100 / 255, 100 / 255)
+			BoxTemplate.Transparency = 0.7
+			BoxTemplate.ZIndex = 0
+			BoxTemplate.AlwaysOnTop = false
+			BoxTemplate.Visible = false
 
-			local NameTag = Instance.new("BillboardGui")
-			NameTag.Name = "nilNameTag"
-			NameTag.Enabled = false
-			NameTag.Size = UDim2.new(0, 200, 0, 50)
-			NameTag.AlwaysOnTop = true
-			NameTag.StudsOffset = Vector3.new(0, 1.8, 0)
-			local Tag = Instance.new("TextLabel", NameTag)
+			local NameTagTemplate = Instance.new("BillboardGui")
+			NameTagTemplate.Name = "nilNameTag"
+			NameTagTemplate.Enabled = false
+			NameTagTemplate.Size = UDim2.new(0, 200, 0, 50)
+			NameTagTemplate.AlwaysOnTop = true
+			NameTagTemplate.StudsOffset = Vector3.new(0, 1.8, 0)
+			local Tag = Instance.new("TextLabel", NameTagTemplate)
 			Tag.Name = "Tag"
 			Tag.BackgroundTransparency = 1
 			Tag.Position = UDim2.new(0, -50, 0, 0)
@@ -199,7 +335,6 @@ NormalSectionRight:AddToggle({
 			Tag.Font = Enum.Font.SourceSansBold
 			Tag.TextScaled = false
 
-			-- НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ ЗДОРОВЬЯ (КЛОНИРУЕМЫЙ ОБРАЗЕЦ)
 			local HealthTagTemplate = Instance.new("BillboardGui")
 			HealthTagTemplate.Name = "nilHealthTag"
 			HealthTagTemplate.Enabled = false
@@ -215,153 +350,31 @@ NormalSectionRight:AddToggle({
 			HealthTextTemplate.TextStrokeTransparency = 0.5
 			HealthTextTemplate.Text = "HP: 100"
 			HealthTextTemplate.Font = Enum.Font.SourceSansBold
-			-- КОНЕЦ НОВЫХ ЭЛЕМЕНТОВ ДЛЯ ЗДОРОВЬЯ
-
-			local function UnloadCharacter(v)
-				local vHolder = Holder:FindFirstChild(v.Name)
-				if vHolder then
-					vHolder:ClearAllChildren()
-				end
-			end
 			
-			local function LoadCharacter(v)
-				repeat task.wait() until v.Character
-				local Humanoid = v.Character:FindFirstChild("Humanoid")
-				if not Humanoid then return UnloadCharacter(v) end
-				
-				local vHolder = Holder:FindFirstChild(v.Name) or Instance.new("Folder", Holder)
-				vHolder.Name = v.Name
-				vHolder:ClearAllChildren()
-				
-				local char = v.Character
-				
-				local b = Box:Clone()
-				b.Name = v.Name .. "Box"
-				b.Adornee = char
-				b.Parent = vHolder
-				
-				local t = NameTag:Clone()
-				t.Name = v.Name .. "NameTag"
-				t.Enabled = true
-				t.Parent = vHolder
-				t.Adornee = char:WaitForChild("Head", 5)
-				if not t.Adornee then
-					return UnloadCharacter(v)
-				end
-				
-				t.Tag.Text = v.Name
-				b.Color3 = v.TeamColor.Color
-				t.Tag.TextColor3 = v.TeamColor.Color
-
-				-- СОЗДАНИЕ МЕТКИ ЗДОРОВЬЯ
-				local HealthTag = HealthTagTemplate:Clone()
-				HealthTag.Name = v.Name .. "HealthTag"
-				HealthTag.Enabled = HealthBarEnabled -- Управляется новым тогглом
-				HealthTag.Parent = vHolder
-				HealthTag.Adornee = t.Adornee
-				local HealthText = HealthTag:FindFirstChild("HealthText")
-				
-				local Update = nil
-				local function UpdateNameTag()
-					if not char or not char:FindFirstChild("Humanoid") then
-						if Update then Update:Disconnect() end
-						return UnloadCharacter(v)
-					end
-					
-					-- ЛОГИКА ОБНОВЛЕНИЯ ЗДОРОВЬЯ
-					local currentHealth = math.ceil(Humanoid.Health)
-					local maxHealth = Humanoid.MaxHealth
-
-					if HealthText then
-						HealthText.Text = "HP: " .. currentHealth
-						
-						-- Изменение цвета в зависимости от здоровья
-						if currentHealth < maxHealth / 4 then
-							HealthText.TextColor3 = Color3.fromRGB(255, 0, 0) -- Красный
-						elseif currentHealth < maxHealth / 2 then
-							HealthText.TextColor3 = Color3.fromRGB(255, 255, 0) -- Желтый
-						else
-							HealthText.TextColor3 = Color3.fromRGB(0, 255, 0) -- Зеленый
-						end
-					end
-					
-					Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-				end
-				
-				Update = Humanoid.Changed:Connect(UpdateNameTag)
-				if espConnections[v.Name] then espConnections[v.Name]:Disconnect() end
-				espConnections[v.Name] = Update
-				UpdateNameTag() -- Первоначальный вызов
-			end
-
-			local function LoadPlayer(v)
-				local vHolder = Holder:FindFirstChild(v.Name) or Instance.new("Folder", Holder)
-				vHolder.Name = v.Name
-
-				espConnections[v.Name .. "CharAdded"] = v.CharacterAdded:Connect(function() pcall(LoadCharacter, v) end)
-				espConnections[v.Name .. "CharRemoving"] = v.CharacterRemoving:Connect(function() pcall(UnloadCharacter, v) end)
-				espConnections[v.Name .. "TeamChanged"] = v.Changed:Connect(function(prop)
-					if prop == "TeamColor" then
-						UnloadCharacter(v)
-						task.wait()
-						LoadCharacter(v)
-					end
-				end)
-				LoadCharacter(v)
-			end
-
-			local function UnloadPlayer(v)
-				UnloadCharacter(v)
-				local vHolder = Holder:FindFirstChild(v.Name)
-				if vHolder then
-					vHolder:Destroy()
-				end
-				for k, conn in pairs(espConnections) do
-					if k:match(v.Name) then
-						conn:Disconnect()
-						espConnections[k] = nil
-					end
-				end
-			end
-			
+			-- Загрузка существующих игроков
 			for _, p in Players:GetPlayers() do
-				if p ~= Players.LocalPlayer then
-					task.spawn(function() pcall(LoadPlayer, p) end)
+				if p ~= LocalPlayer then
+					task.spawn(function() pcall(LoadPlayer, p, BoxTemplate, NameTagTemplate, HealthTagTemplate) end)
 				end
 			end
 
+			-- Подключение событий
 			espConnections["PlayerAdded"] = Players.PlayerAdded:Connect(function(p)
-				if p ~= Players.LocalPlayer then
-					pcall(LoadPlayer, p)
+				if p ~= LocalPlayer then
+					pcall(LoadPlayer, p, BoxTemplate, NameTagTemplate, HealthTagTemplate)
 				end
 			end)
 			
 			espConnections["PlayerRemoving"] = Players.PlayerRemoving:Connect(UnloadPlayer)
 			
-			Players.LocalPlayer.NameDisplayDistance = 0
+			LocalPlayer.NameDisplayDistance = 0
 
-			local function highlightEsp(target, color)
-				if target.Character then
-					if not target.Character:FindFirstChild("VANO_Highlight") then
-						local highlight = Instance.new("Highlight")
-						highlight.RobloxLocked = true
-						highlight.Name = "VANO_Highlight"
-						highlight.Adornee = target.Character
-						highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-						highlight.FillColor = color
-						highlight.Parent = target.Character
-					else
-						target.Character.VANO_Highlight.FillColor = color
-					end
-				end
-			end
-			
+			-- Цикл обновления Highlight ESP (уменьшен wait для снижения нагрузки)
 			espRun = task.spawn(function()
-				while task.wait() and v do 
-					local plr = Players.LocalPlayer
+				while task.wait(0.5) and v do 
 					for _, p in Players:GetPlayers() do
-						if p ~= plr then
-							local color = _G.UseTeamColor and p.TeamColor.Color or ((plr.TeamColor == p.TeamColor) and _G.FriendColor or _G.EnemyColor)
+						if p ~= LocalPlayer then
+							local color = _G.UseTeamColor and p.TeamColor.Color or ((LocalPlayer.TeamColor == p.TeamColor) and _G.FriendColor or _G.EnemyColor)
 							highlightEsp(p, color)
 						end
 					end
@@ -369,6 +382,7 @@ NormalSectionRight:AddToggle({
 			end)
 			
 		else
+			-- Очистка
 			if espRun then
 				task.cancel(espRun)
 				espRun = nil
@@ -393,7 +407,7 @@ NormalSectionRight:AddToggle({
 	end,
 });
 
--- НОВЫЙ TOGGLE ДЛЯ ЗДОРОВЬЯ
+-- 4. Health Bar Toggle
 NormalSectionRight:AddToggle({
 	Name = "Health Bar",
 	Default = false,
@@ -402,7 +416,7 @@ NormalSectionRight:AddToggle({
 		
 		-- Обновляем видимость HealthTag для всех существующих игроков
 		for _, p in Players:GetPlayers() do
-			if p ~= Players.LocalPlayer and p.Character then
+			if p ~= LocalPlayer and p.Character then
 				local vHolder = Holder and Holder:FindFirstChild(p.Name)
 				if vHolder then
 					local HealthTag = vHolder:FindFirstChild(p.Name .. "HealthTag")
@@ -414,8 +428,11 @@ NormalSectionRight:AddToggle({
 		end
 	end,
 });
--- == ESP FUNCTIONALITY END ==
 
+
+-- =========================================================================
+-- ||                              GENERAL TAB (TP)
+-- =========================================================================
 
 local SingleTab = Window:DrawTab({
 	Name = "General Tab",
@@ -429,27 +446,12 @@ local GeneralSection = SingleTab:DrawSection({
 });
 
 local PlayerListDropdown = nil
-local CurrentTarget = nil
-local CurrentTweenSpeed = 0.16 
 
-GeneralSection:AddSlider({
-	Name = "TP Tween Speed",
-	Min = 10,
-	Max = 100,
-	Default = 50, 
-	Step = 1,
-	Unit = "Speed",
-	Callback = function(v)
-		-- Time = 8 / V. (100 = 0.08s, 10 = 0.8s)
-		CurrentTweenSpeed = 8 / v
-	end
-});
-
-
+-- Функция обновления списка игроков
 local function UpdatePlayers()
 	local playerNames = {}
 	for _, player in Players:GetPlayers() do
-		if player ~= Players.LocalPlayer then
+		if player ~= LocalPlayer then
 			table.insert(playerNames, player.Name)
 		end
 	end
@@ -466,6 +468,20 @@ local function UpdatePlayers()
 	return playerNames
 end
 
+-- 5. TP Tween Speed (Секунды)
+GeneralSection:AddSlider({
+	Name = "TP Tween Speed (Seconds)", 
+	Min = 10,
+	Max = 100,
+	Default = 50, 
+	Step = 10,
+	Unit = "Seconds",
+	Callback = function(v)
+		-- ЛОГИКА: v / 10 = 1-10 секунд
+		CurrentTweenSpeed = v / 10
+	end
+});
+
 PlayerListDropdown = GeneralSection:AddDropdown({
 	Name = "Select Player",
 	Default = "No players found",
@@ -475,6 +491,7 @@ PlayerListDropdown = GeneralSection:AddDropdown({
 	end,
 });
 
+-- 6. Teleport to Player
 GeneralSection:AddButton({
 	Name = "Teleport to Player",
 	Callback = function()
@@ -489,15 +506,24 @@ GeneralSection:AddButton({
 		end
 
 		local targetPlayer = Players:FindFirstChild(CurrentTarget)
-		local localPlayer = Players.LocalPlayer
+		local hrp = getHRP(LocalPlayer)
 		
-		if targetPlayer and targetPlayer.Character and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-			local targetPosition = targetPlayer.Character:FindFirstChild("HumanoidRootPart").CFrame
-			local hrp = localPlayer.Character.HumanoidRootPart
-			local TweenService = game:GetService("TweenService")
+		if targetPlayer and targetPlayer.Character and hrp then
+			local targetHRP = getHRP(targetPlayer)
+            if not targetHRP then
+                Notifier.new({
+                    Title = "Teleport Error",
+                    Content = "Target's character is not fully loaded.",
+                    Duration = 5,
+                    Icon = "error"
+                });
+                return
+            end
+
+			local targetPosition = targetHRP.CFrame
 			
 			local tweenInfo = TweenInfo.new(
-				CurrentTweenSpeed,
+				CurrentTweenSpeed, -- Используем время в секундах
 				Enum.EasingStyle.Linear,
 				Enum.EasingDirection.Out,
 				0,
@@ -505,14 +531,14 @@ GeneralSection:AddButton({
 				0
 			)
 			
-			local properties = {CFrame = targetPosition * CFrame.new(0, 3, 0)}
+			local properties = {CFrame = targetPosition * CFrame.new(0, 3, 0)} -- Смещение вверх на 3
 			local tween = TweenService:Create(hrp, tweenInfo, properties)
 			
 			tween:Play()
 			
 			Notifier.new({
 				Title = "Teleport Success",
-				Content = "Teleported to " .. CurrentTarget .. " with time " .. string.format("%.2f", CurrentTweenSpeed) .. "s",
+				Content = "Teleported to " .. CurrentTarget .. " in " .. string.format("%.1f", CurrentTweenSpeed) .. "s",
 				Duration = 3,
 				Icon = "rbxassetid://72788619889737"
 			});
@@ -540,6 +566,9 @@ GeneralSection:AddButton({
 	end,
 });
 
+-- =========================================================================
+-- ||                           ДОПОЛНИТЕЛЬНЫЕ ВКЛАДКИ
+-- =========================================================================
 
 local ContainerTab = Window:DrawContainerTab({
 	Name = "Extract Tabs",
@@ -575,6 +604,10 @@ local ThemeTab = Window:DrawTab({
 	Type = "Single"
 });
 
+-- =========================================================================
+-- ||                              НАСТРОЙКИ UI
+-- =========================================================================
+
 local Settings = SettingTab:DrawSection({
 	Name = "UI Settings",
 });
@@ -587,124 +620,34 @@ Settings:AddToggle({
 	end,
 });
 
-Settings:AddColorPicker({
-	Name = "Highlight",
-	Default = Compkiller.Colors.Highlight,
-	Callback = function(v)
-		Compkiller.Colors.Highlight = v;
-		Compkiller:RefreshCurrentColor();
-	end,
-});
+-- COLOR PICKERS (Очищенный блок)
+local colorPickers = {
+    {"Highlight", Compkiller.Colors.Highlight, "Highlight"},
+    {"Toggle Color", Compkiller.Colors.Toggle, "Toggle"},
+    {"Drop Color", Compkiller.Colors.DropColor, "DropColor"},
+    {"Risky", Compkiller.Colors.Risky, "Risky"},
+    {"Mouse Enter", Compkiller.Colors.MouseEnter, "MouseEnter"},
+    {"Block Color", Compkiller.Colors.BlockColor, "BlockColor"},
+    {"Background Color", Compkiller.Colors.BGDBColor, "BGDBColor"},
+    {"Block Background Color", Compkiller.Colors.BlockBackground, "BlockBackground"},
+    {"Stroke Color", Compkiller.Colors.StrokeColor, "StrokeColor"},
+    {"High Stroke Color", Compkiller.Colors.HighStrokeColor, "HighStrokeColor"},
+    {"Switch Color", Compkiller.Colors.SwitchColor, "SwitchColor"},
+    {"Line Color", Compkiller.Colors.LineColor, "LineColor"},
+}
 
-Settings:AddColorPicker({
-	Name = "Toggle Color",
-	Default = Compkiller.Colors.Toggle,
-	Callback = function(v)
-		Compkiller.Colors.Toggle = v;
-		
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
+for _, data in ipairs(colorPickers) do
+    local name, defaultColor, propName = unpack(data)
+    Settings:AddColorPicker({
+        Name = name,
+        Default = defaultColor,
+        Callback = function(v)
+            Compkiller.Colors[propName] = v;
+            Compkiller:RefreshCurrentColor();
+        end,
+    });
+end
 
-Settings:AddColorPicker({
-	Name = "Drop Color",
-	Default = Compkiller.Colors.DropColor,
-	Callback = function(v)
-		Compkiller.Colors.DropColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Risky",
-	Default = Compkiller.Colors.Risky,
-	Callback = function(v)
-		Compkiller.Colors.Risky = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Mouse Enter",
-	Default = Compkiller.Colors.MouseEnter,
-	Callback = function(v)
-		Compkiller.Colors.MouseEnter = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Color",
-	Default = Compkiller.Colors.BlockColor,
-	Callback = function(v)
-		Compkiller.Colors.BlockColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Background Color",
-	Default = Compkiller.Colors.BGDBColor,
-	Callback = function(v)
-		Compkiller.Colors.BGDBColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Background Color",
-	Default = Compkiller.Colors.BlockBackground,
-	Callback = function(v)
-		Compkiller.Colors.BlockBackground = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Stroke Color",
-	Default = Compkiller.Colors.StrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.StrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "High Stroke Color",
-	Default = Compkiller.Colors.HighStrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.HighStrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Switch Color",
-	Default = Compkiller.Colors.SwitchColor,
-	Callback = function(v)
-		Compkiller.Colors.SwitchColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Line Color",
-	Default = Compkiller.Colors.LineColor,
-	Callback = function(v)
-		Compkiller.Colors.LineColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
 
 Settings:AddButton({
 	Name = "Get Theme",
