@@ -128,26 +128,225 @@ local NormalSectionRight = NormalTab:DrawSection({
 	Position = 'right'
 });
 
--- Функция ESP теперь в правой секции
-local ESPLoader = nil
+-- == ESP FUNCTIONALITY START ==
+local espConnections = {}
+local espRun = nil
+local Holder = nil
+
 NormalSectionRight:AddToggle({
 	Name = "ESP",
 	Default = false,
 	Callback = function(v)
 		if v then
-			ESPLoader = loadstring(game:HttpGet('https://raw.githubusercontent.com/Lucasfin000/SpaceHub/main/UESP'))()
+			-- Инициализация и запуск ESP
+			
+			-- Глобальные настройки цвета
+			_G.FriendColor = Color3.fromRGB(0, 0, 255)
+			_G.EnemyColor = Color3.fromRGB(255, 0, 0)
+			_G.UseTeamColor = true
+
+			Holder = Instance.new("Folder")
+			Holder.Name = "VANO_ESP_Holder"
+			Holder.Parent = game.CoreGui
+			
+			local Box = Instance.new("BoxHandleAdornment")
+			Box.Name = "nilBox"
+			Box.Size = Vector3.new(1, 2, 1)
+			Box.Color3 = Color3.new(100 / 255, 100 / 255, 100 / 255)
+			Box.Transparency = 0.7
+			Box.ZIndex = 0
+			Box.AlwaysOnTop = false
+			Box.Visible = false
+
+			local NameTag = Instance.new("BillboardGui")
+			NameTag.Name = "nilNameTag"
+			NameTag.Enabled = false
+			NameTag.Size = UDim2.new(0, 200, 0, 50)
+			NameTag.AlwaysOnTop = true
+			NameTag.StudsOffset = Vector3.new(0, 1.8, 0)
+			local Tag = Instance.new("TextLabel", NameTag)
+			Tag.Name = "Tag"
+			Tag.BackgroundTransparency = 1
+			Tag.Position = UDim2.new(0, -50, 0, 0)
+			Tag.Size = UDim2.new(0, 300, 0, 20)
+			Tag.TextSize = 15
+			Tag.TextColor3 = Color3.new(100 / 255, 100 / 255, 100 / 255)
+			Tag.TextStrokeColor3 = Color3.new(0 / 255, 0 / 255, 0 / 255)
+			Tag.TextStrokeTransparency = 0.4
+			Tag.Text = "nil"
+			Tag.Font = Enum.Font.SourceSansBold
+			Tag.TextScaled = false
+
+			local function UnloadCharacter(v)
+				local vHolder = Holder:FindFirstChild(v.Name)
+				if vHolder then
+					vHolder:ClearAllChildren()
+				end
+			end
+			
+			local function LoadCharacter(v)
+				repeat task.wait() until v.Character
+				local Humanoid = v.Character:FindFirstChild("Humanoid")
+				if not Humanoid then return UnloadCharacter(v) end
+				
+				local vHolder = Holder:FindFirstChild(v.Name) or Instance.new("Folder", Holder)
+				vHolder.Name = v.Name
+				vHolder:ClearAllChildren()
+				
+				local b = Box:Clone()
+				b.Name = v.Name .. "Box"
+				b.Adornee = v.Character
+				b.Parent = vHolder
+				
+				local t = NameTag:Clone()
+				t.Name = v.Name .. "NameTag"
+				t.Enabled = true
+				t.Parent = vHolder
+				t.Adornee = v.Character:WaitForChild("Head", 5)
+				if not t.Adornee then
+					return UnloadCharacter(v)
+				end
+				
+				t.Tag.Text = v.Name
+				b.Color3 = v.TeamColor.Color
+				t.Tag.TextColor3 = v.TeamColor.Color
+				
+				local Update = nil
+				local function UpdateNameTag()
+					if not v.Character or not v.Character:FindFirstChild("Humanoid") then
+						if Update then Update:Disconnect() end
+						return UnloadCharacter(v)
+					end
+					
+					v.Character.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+					-- Здесь можно добавить обновление текста HP
+				end
+				
+				Update = Humanoid.Changed:Connect(UpdateNameTag)
+				if espConnections[v.Name] then espConnections[v.Name]:Disconnect() end
+				espConnections[v.Name] = Update
+			end
+
+			local function LoadPlayer(v)
+				local vHolder = Holder:FindFirstChild(v.Name) or Instance.new("Folder", Holder)
+				vHolder.Name = v.Name
+
+				espConnections[v.Name .. "CharAdded"] = v.CharacterAdded:Connect(function() pcall(LoadCharacter, v) end)
+				espConnections[v.Name .. "CharRemoving"] = v.CharacterRemoving:Connect(function() pcall(UnloadCharacter, v) end)
+				espConnections[v.Name .. "TeamChanged"] = v.Changed:Connect(function(prop)
+					if prop == "TeamColor" then
+						UnloadCharacter(v)
+						task.wait()
+						LoadCharacter(v)
+					end
+				end)
+				LoadCharacter(v)
+			end
+
+			local function UnloadPlayer(v)
+				UnloadCharacter(v)
+				local vHolder = Holder:FindFirstChild(v.Name)
+				if vHolder then
+					vHolder:Destroy()
+				end
+				for k, conn in pairs(espConnections) do
+					if k:match(v.Name) then
+						conn:Disconnect()
+						espConnections[k] = nil
+					end
+				end
+			end
+
+			local function CleanupAll()
+				for k, conn in pairs(espConnections) do
+					conn:Disconnect()
+				end
+				espConnections = {}
+				if Holder then
+					Holder:Destroy()
+					Holder = nil
+				end
+			end
+			
+			-- Запуск цикла и подключений
+			for _, p in Players:GetPlayers() do
+				if p ~= Players.LocalPlayer then
+					task.spawn(function() pcall(LoadPlayer, p) end)
+				end
+			end
+
+			espConnections["PlayerAdded"] = Players.PlayerAdded:Connect(function(p)
+				if p ~= Players.LocalPlayer then
+					pcall(LoadPlayer, p)
+				end
+			end)
+			
+			espConnections["PlayerRemoving"] = Players.PlayerRemoving:Connect(UnloadPlayer)
+			
+			Players.LocalPlayer.NameDisplayDistance = 0
+
+			-- Дополнительная ESP, если не требуется, можно удалить
+			local function highlightEsp(target, color)
+				if target.Character then
+					if not target.Character:FindFirstChild("VANO_Highlight") then
+						local highlight = Instance.new("Highlight")
+						highlight.RobloxLocked = true
+						highlight.Name = "VANO_Highlight"
+						highlight.Adornee = target.Character
+						highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+						highlight.FillColor = color
+						highlight.Parent = target.Character
+					else
+						target.Character.VANO_Highlight.FillColor = color
+					end
+				end
+			end
+			
+			espRun = task.spawn(function()
+				while task.wait() and v do -- Цикл для работы, пока тоггл включен
+					local plr = Players.LocalPlayer
+					for _, p in Players:GetPlayers() do
+						if p ~= plr then
+							local color = _G.UseTeamColor and p.TeamColor.Color or ((plr.TeamColor == p.TeamColor) and _G.FriendColor or _G.EnemyColor)
+							highlightEsp(p, color)
+						end
+					end
+				end
+			end)
+			
 		else
-			if ESPLoader and ESPLoader.Disable then
-				ESPLoader:Disable()
+			-- Отключение ESP
+			if espRun then
+				task.cancel(espRun)
+				espRun = nil
+			end
+			
+			-- Отключаем все коннекты и очищаем элементы
+			for _, conn in pairs(espConnections) do
+				conn:Disconnect()
+			end
+			espConnections = {}
+			
+			if Holder then
+				Holder:Destroy()
+				Holder = nil
+			end
+
+			-- Удаляем Highlight'ы
+			local highlights = game.Workspace:GetDescendants()
+			for _, obj in ipairs(highlights) do
+				if obj.Name == "VANO_Highlight" and obj:IsA("Highlight") then
+					obj:Destroy()
+				end
 			end
 		end
 	end,
 });
--- Конец функции ESP
+-- == ESP FUNCTIONALITY END ==
 
 local SingleTab = Window:DrawTab({
 	Name = "General Tab",
-	Icon = "fire", -- Иконка заменена на fire
+	Icon = "fire",
 	Type = "Single"
 });
 
