@@ -23,12 +23,12 @@ local ConfigManager = Compkiller:ConfigManager({
 	Config = "Example-Configs"
 });
 
-Compkiller:Loader("rbxassetid://84624587242229" , 2.5).yield();
+Compkiller:Loader("rbxassetid://72788619889737" , 2.5).yield();
 
 local Window = Compkiller.new({
 	Name = "VANO-HUB",
 	Keybind = "LeftAlt",
-	Logo = "rbxassetid://84624587242229",
+	Logo = "rbxassetid://72788619889737",
 	Scale = Compkiller.Scale.Window,
 	TextSize = 15,
 });
@@ -37,7 +37,7 @@ Notifier.new({
 	Title = "Welcome",
 	Content = "Welcome rshome",
 	Duration = 10,
-	Icon = "rbxassetid://84624587242229"
+	Icon = "rbxassetid://72788619889737"
 });
 
 local Watermark = Window:Watermark();
@@ -130,7 +130,6 @@ SpeedSlider = NormalSection:AddSlider({
 	Default = 50, 
 	Step = 1,
 	Unit = "WalkSpeed",
-	-- Visible по умолчанию True
 	Callback = function(v)
 		if SpeedEnabled then
 			local Player = Players.LocalPlayer
@@ -329,7 +328,7 @@ Settings:AddButton({
 			Title = "Notification",
 			Content = "Copied Them Color to your clipboard",
 			Duration = 5,
-			Icon = "rbxassetid://84624587242229"
+			Icon = "rbxassetid://72788619889737"
 		});
 	end,
 });
