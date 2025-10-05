@@ -91,21 +91,6 @@ NormalSection:AddToggle({
 	end,
 });
 
-local ESPLoader = nil
-NormalSection:AddToggle({
-	Name = "ESP",
-	Default = false,
-	Callback = function(v)
-		if v then
-			ESPLoader = loadstring(game:HttpGet('https://raw.githubusercontent.com/Lucasfin000/SpaceHub/main/UESP'))()
-		else
-			if ESPLoader and ESPLoader.Disable then
-				ESPLoader:Disable()
-			end
-		end
-	end,
-});
-
 local SpeedSlider
 NormalSection:AddToggle({
 	Name = "Speed",
@@ -144,9 +129,26 @@ SpeedSlider = NormalSection:AddSlider({
 
 
 local NormalSectionRight = NormalTab:DrawSection({
-	Name = "Section (Right)",
+	Name = "Visual", -- Переименовано в Visual
 	Position = 'right'
 });
+
+-- Функция ESP теперь в правой секции
+local ESPLoader = nil
+NormalSectionRight:AddToggle({
+	Name = "ESP",
+	Default = false,
+	Callback = function(v)
+		if v then
+			ESPLoader = loadstring(game:HttpGet('https://raw.githubusercontent.com/Lucasfin000/SpaceHub/main/UESP'))()
+		else
+			if ESPLoader and ESPLoader.Disable then
+				ESPLoader:Disable()
+			end
+		end
+	end,
+});
+-- Конец функции ESP
 
 local SingleTab = Window:DrawTab({
 	Name = "Single Tab",
