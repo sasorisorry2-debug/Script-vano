@@ -374,6 +374,25 @@ local GeneralSection = SingleTab:DrawSection({
 
 local PlayerListDropdown = nil
 local CurrentTarget = nil
+local CurrentTweenSpeed = 1.0 -- Значение по умолчанию (10/10)
+
+-- 🌟 ОБНОВЛЕННЫЙ СЛАЙДЕР ДЛЯ СКОРОСТИ
+GeneralSection:AddSlider({
+	Name = "TP Tween Time (Seconds)",
+	Min = 10,  -- 10 = 1.0 секунда
+	Max = 100, -- 100 = 10.0 секунд
+	Default = 10, -- Начинаем с самой быстрой (1 секунда)
+	Step = 10, -- Шаг 10 для удобства (каждый шаг +1 секунда)
+	Unit = "Time Value",
+	Callback = function(v)
+		-- Формула Time = V / 10:
+		-- V=10 (мин) -> 1.0 сек
+		-- V=50 -> 5.0 сек
+		-- V=100 (макс) -> 10.0 сек
+		CurrentTweenSpeed = v / 10
+	end
+});
+
 
 -- Функция для получения и обновления списка игроков
 local function UpdatePlayers()
@@ -430,7 +449,7 @@ GeneralSection:AddButton({
 			local TweenService = game:GetService("TweenService")
 			
 			local tweenInfo = TweenInfo.new(
-				0.2, -- Скорость (время в секундах)
+				CurrentTweenSpeed, -- Используем регулируемое время
 				Enum.EasingStyle.Linear,
 				Enum.EasingDirection.Out,
 				0,
@@ -445,7 +464,7 @@ GeneralSection:AddButton({
 			
 			Notifier.new({
 				Title = "Teleport Success",
-				Content = "Teleported to " .. CurrentTarget,
+				Content = "Teleported to " .. CurrentTarget .. " over " .. string.format("%.1f", CurrentTweenSpeed) .. " seconds.",
 				Duration = 3,
 				Icon = "rbxassetid://72788619889737"
 			});
