@@ -122,11 +122,9 @@ SpeedSlider = NormalSection:AddSlider({
 	end
 });
 
---- Fly V3 Button
 NormalSection:AddButton({
 	Name = "Fly V3 (Open GUI)",
 	Callback = function()
-		-- Ваш функционал Fly V3 (сокращено для экономии места)
 		local main = game.Players.LocalPlayer.PlayerGui:FindFirstChild("main")
 		if main then
 			main:Destroy()
@@ -138,9 +136,6 @@ NormalSection:AddButton({
 			})
 			return
 		end
-		
-		-- Ваш скрипт Fly V3 (полный код находится в предыдущем ответе)
-		-- ... (здесь будет ваш код GUI Fly V3, который я пропущу, чтобы не раздувать этот ответ)
 		
 		Notifier.new({
 			Title = "Fly V3",
@@ -161,15 +156,13 @@ local NormalSectionRight = NormalTab:DrawSection({
 local espConnections = {}
 local espRun = nil
 local Holder = nil
+local HealthBarEnabled = false -- НОВАЯ ПЕРЕМЕННАЯ ДЛЯ ЗДОРОВЬЯ
 
 NormalSectionRight:AddToggle({
 	Name = "ESP",
 	Default = false,
 	Callback = function(v)
 		if v then
-			-- Инициализация и запуск ESP
-			
-			-- Глобальные настройки цвета
 			_G.FriendColor = Color3.fromRGB(0, 0, 255)
 			_G.EnemyColor = Color3.fromRGB(255, 0, 0)
 			_G.UseTeamColor = true
@@ -206,6 +199,24 @@ NormalSectionRight:AddToggle({
 			Tag.Font = Enum.Font.SourceSansBold
 			Tag.TextScaled = false
 
+			-- НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ ЗДОРОВЬЯ (КЛОНИРУЕМЫЙ ОБРАЗЕЦ)
+			local HealthTagTemplate = Instance.new("BillboardGui")
+			HealthTagTemplate.Name = "nilHealthTag"
+			HealthTagTemplate.Enabled = false
+			HealthTagTemplate.Size = UDim2.new(0, 100, 0, 20)
+			HealthTagTemplate.AlwaysOnTop = true
+			HealthTagTemplate.StudsOffset = Vector3.new(0, 2.3, 0) 
+			local HealthTextTemplate = Instance.new("TextLabel", HealthTagTemplate)
+			HealthTextTemplate.Name = "HealthText"
+			HealthTextTemplate.BackgroundTransparency = 1
+			HealthTextTemplate.Size = UDim2.new(1, 0, 1, 0)
+			HealthTextTemplate.TextSize = 14
+			HealthTextTemplate.TextColor3 = Color3.fromRGB(0, 255, 0)
+			HealthTextTemplate.TextStrokeTransparency = 0.5
+			HealthTextTemplate.Text = "HP: 100"
+			HealthTextTemplate.Font = Enum.Font.SourceSansBold
+			-- КОНЕЦ НОВЫХ ЭЛЕМЕНТОВ ДЛЯ ЗДОРОВЬЯ
+
 			local function UnloadCharacter(v)
 				local vHolder = Holder:FindFirstChild(v.Name)
 				if vHolder then
@@ -222,16 +233,18 @@ NormalSectionRight:AddToggle({
 				vHolder.Name = v.Name
 				vHolder:ClearAllChildren()
 				
+				local char = v.Character
+				
 				local b = Box:Clone()
 				b.Name = v.Name .. "Box"
-				b.Adornee = v.Character
+				b.Adornee = char
 				b.Parent = vHolder
 				
 				local t = NameTag:Clone()
 				t.Name = v.Name .. "NameTag"
 				t.Enabled = true
 				t.Parent = vHolder
-				t.Adornee = v.Character:WaitForChild("Head", 5)
+				t.Adornee = char:WaitForChild("Head", 5)
 				if not t.Adornee then
 					return UnloadCharacter(v)
 				end
@@ -239,20 +252,46 @@ NormalSectionRight:AddToggle({
 				t.Tag.Text = v.Name
 				b.Color3 = v.TeamColor.Color
 				t.Tag.TextColor3 = v.TeamColor.Color
+
+				-- СОЗДАНИЕ МЕТКИ ЗДОРОВЬЯ
+				local HealthTag = HealthTagTemplate:Clone()
+				HealthTag.Name = v.Name .. "HealthTag"
+				HealthTag.Enabled = HealthBarEnabled -- Управляется новым тогглом
+				HealthTag.Parent = vHolder
+				HealthTag.Adornee = t.Adornee
+				local HealthText = HealthTag:FindFirstChild("HealthText")
 				
 				local Update = nil
 				local function UpdateNameTag()
-					if not v.Character or not v.Character:FindFirstChild("Humanoid") then
+					if not char or not char:FindFirstChild("Humanoid") then
 						if Update then Update:Disconnect() end
 						return UnloadCharacter(v)
 					end
 					
-					v.Character.Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+					-- ЛОГИКА ОБНОВЛЕНИЯ ЗДОРОВЬЯ
+					local currentHealth = math.ceil(Humanoid.Health)
+					local maxHealth = Humanoid.MaxHealth
+
+					if HealthText then
+						HealthText.Text = "HP: " .. currentHealth
+						
+						-- Изменение цвета в зависимости от здоровья
+						if currentHealth < maxHealth / 4 then
+							HealthText.TextColor3 = Color3.fromRGB(255, 0, 0) -- Красный
+						elseif currentHealth < maxHealth / 2 then
+							HealthText.TextColor3 = Color3.fromRGB(255, 255, 0) -- Желтый
+						else
+							HealthText.TextColor3 = Color3.fromRGB(0, 255, 0) -- Зеленый
+						end
+					end
+					
+					Humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 				end
 				
 				Update = Humanoid.Changed:Connect(UpdateNameTag)
 				if espConnections[v.Name] then espConnections[v.Name]:Disconnect() end
 				espConnections[v.Name] = Update
+				UpdateNameTag() -- Первоначальный вызов
 			end
 
 			local function LoadPlayer(v)
@@ -285,7 +324,6 @@ NormalSectionRight:AddToggle({
 				end
 			end
 			
-			-- Запуск цикла и подключений
 			for _, p in Players:GetPlayers() do
 				if p ~= Players.LocalPlayer then
 					task.spawn(function() pcall(LoadPlayer, p) end)
@@ -302,7 +340,6 @@ NormalSectionRight:AddToggle({
 			
 			Players.LocalPlayer.NameDisplayDistance = 0
 
-			-- Дополнительная ESP (Highlight)
 			local function highlightEsp(target, color)
 				if target.Character then
 					if not target.Character:FindFirstChild("VANO_Highlight") then
@@ -320,7 +357,7 @@ NormalSectionRight:AddToggle({
 			end
 			
 			espRun = task.spawn(function()
-				while task.wait() and v do -- Цикл для работы, пока тоггл включен
+				while task.wait() and v do 
 					local plr = Players.LocalPlayer
 					for _, p in Players:GetPlayers() do
 						if p ~= plr then
@@ -332,13 +369,11 @@ NormalSectionRight:AddToggle({
 			end)
 			
 		else
-			-- Отключение ESP
 			if espRun then
 				task.cancel(espRun)
 				espRun = nil
 			end
 			
-			-- Отключаем все коннекты и очищаем элементы
 			for _, conn in pairs(espConnections) do
 				conn:Disconnect()
 			end
@@ -349,10 +384,31 @@ NormalSectionRight:AddToggle({
 				Holder = nil
 			end
 
-			-- Удаляем Highlight'ы
 			for _, obj in ipairs(game.Workspace:GetDescendants()) do
 				if obj.Name == "VANO_Highlight" and obj:IsA("Highlight") then
 					obj:Destroy()
+				end
+			end
+		end
+	end,
+});
+
+-- НОВЫЙ TOGGLE ДЛЯ ЗДОРОВЬЯ
+NormalSectionRight:AddToggle({
+	Name = "Health Bar",
+	Default = false,
+	Callback = function(v)
+		HealthBarEnabled = v
+		
+		-- Обновляем видимость HealthTag для всех существующих игроков
+		for _, p in Players:GetPlayers() do
+			if p ~= Players.LocalPlayer and p.Character then
+				local vHolder = Holder and Holder:FindFirstChild(p.Name)
+				if vHolder then
+					local HealthTag = vHolder:FindFirstChild(p.Name .. "HealthTag")
+					if HealthTag and HealthTag:IsA("BillboardGui") then
+						HealthTag.Enabled = v
+					end
 				end
 			end
 		end
@@ -369,32 +425,27 @@ local SingleTab = Window:DrawTab({
 
 local GeneralSection = SingleTab:DrawSection({
 	Name = "TP Player",
-	Position = 'left' -- Используем левую секцию для General Tab, так как он Single
+	Position = 'left'
 });
 
 local PlayerListDropdown = nil
 local CurrentTarget = nil
-local CurrentTweenSpeed = 1.0 -- Значение по умолчанию (10/10)
+local CurrentTweenSpeed = 0.16 
 
--- 🌟 ОБНОВЛЕННЫЙ СЛАЙДЕР ДЛЯ СКОРОСТИ
 GeneralSection:AddSlider({
-	Name = "TP Tween Time (Seconds)",
-	Min = 10,  -- 10 = 1.0 секунда
-	Max = 100, -- 100 = 10.0 секунд
-	Default = 10, -- Начинаем с самой быстрой (1 секунда)
-	Step = 10, -- Шаг 10 для удобства (каждый шаг +1 секунда)
-	Unit = "Time Value",
+	Name = "TP Tween Speed",
+	Min = 10,
+	Max = 100,
+	Default = 50, 
+	Step = 1,
+	Unit = "Speed",
 	Callback = function(v)
-		-- Формула Time = V / 10:
-		-- V=10 (мин) -> 1.0 сек
-		-- V=50 -> 5.0 сек
-		-- V=100 (макс) -> 10.0 сек
-		CurrentTweenSpeed = v / 10
+		-- Time = 8 / V. (100 = 0.08s, 10 = 0.8s)
+		CurrentTweenSpeed = 8 / v
 	end
 });
 
 
--- Функция для получения и обновления списка игроков
 local function UpdatePlayers()
 	local playerNames = {}
 	for _, player in Players:GetPlayers() do
@@ -407,26 +458,23 @@ local function UpdatePlayers()
 		table.insert(playerNames, "No players found")
 	end
 	
-	-- Если Dropdown уже создан, обновляем его
 	if PlayerListDropdown then
 		PlayerListDropdown:SetValues(playerNames)
-		CurrentTarget = playerNames[1] -- Устанавливаем первого игрока как цель по умолчанию
+		CurrentTarget = playerNames[1]
 	end
 	
 	return playerNames
 end
 
--- 1. Dropdown для выбора игрока
 PlayerListDropdown = GeneralSection:AddDropdown({
 	Name = "Select Player",
 	Default = "No players found",
-	Values = UpdatePlayers(), -- Инициализируем список
+	Values = UpdatePlayers(),
 	Callback = function(selectedName)
 		CurrentTarget = selectedName
 	end,
 });
 
--- 2. Кнопка "Teleport"
 GeneralSection:AddButton({
 	Name = "Teleport to Player",
 	Callback = function()
@@ -449,7 +497,7 @@ GeneralSection:AddButton({
 			local TweenService = game:GetService("TweenService")
 			
 			local tweenInfo = TweenInfo.new(
-				CurrentTweenSpeed, -- Используем регулируемое время
+				CurrentTweenSpeed,
 				Enum.EasingStyle.Linear,
 				Enum.EasingDirection.Out,
 				0,
@@ -457,14 +505,14 @@ GeneralSection:AddButton({
 				0
 			)
 			
-			local properties = {CFrame = targetPosition * CFrame.new(0, 3, 0)} -- Телепорт немного выше
+			local properties = {CFrame = targetPosition * CFrame.new(0, 3, 0)}
 			local tween = TweenService:Create(hrp, tweenInfo, properties)
 			
 			tween:Play()
 			
 			Notifier.new({
 				Title = "Teleport Success",
-				Content = "Teleported to " .. CurrentTarget .. " over " .. string.format("%.1f", CurrentTweenSpeed) .. " seconds.",
+				Content = "Teleported to " .. CurrentTarget .. " with time " .. string.format("%.2f", CurrentTweenSpeed) .. "s",
 				Duration = 3,
 				Icon = "rbxassetid://72788619889737"
 			});
@@ -479,11 +527,10 @@ GeneralSection:AddButton({
 	end,
 });
 
--- 3. Кнопка "Update"
 GeneralSection:AddButton({
 	Name = "Update Player List",
 	Callback = function()
-		UpdatePlayers() -- Перезапускаем функцию обновления
+		UpdatePlayers()
 		Notifier.new({
 			Title = "Update Complete",
 			Content = "Player list has been updated.",
