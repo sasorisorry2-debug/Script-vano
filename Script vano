@@ -1,0 +1,360 @@
+local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local InfiniteJumpEnabled = false
+local SpeedEnabled = false 
+
+UserInputService.JumpRequest:Connect(function()
+	if InfiniteJumpEnabled then
+		local Character = Players.LocalPlayer.Character
+		local Humanoid = Character and Character:FindFirstChildOfClass('Humanoid')
+		
+		if Humanoid then
+			Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+		end
+	end
+end)
+
+local Notifier = Compkiller.newNotify();
+
+local ConfigManager = Compkiller:ConfigManager({
+	Directory = "Compkiller-UI",
+	Config = "Example-Configs"
+});
+
+Compkiller:Loader("rbxassetid://84624587242229" , 2.5).yield();
+
+local Window = Compkiller.new({
+	Name = "VANO-HUB",
+	Keybind = "LeftAlt",
+	Logo = "rbxassetid://84624587242229",
+	Scale = Compkiller.Scale.Window,
+	TextSize = 15,
+});
+
+Notifier.new({
+	Title = "Welcome",
+	Content = "Welcome rshome",
+	Duration = 10,
+	Icon = "rbxassetid://84624587242229"
+});
+
+local Watermark = Window:Watermark();
+
+Watermark:AddText({
+	Icon = "user",
+	Text = "RShome",
+});
+
+Watermark:AddText({
+	Icon = "clock",
+	Text = Compkiller:GetDate(),
+});
+
+local Time = Watermark:AddText({
+	Icon = "timer",
+	Text = "TIME",
+});
+
+task.spawn(function()
+	while true do task.wait()
+		Time:SetText(Compkiller:GetTimeNow());
+	end
+end)
+
+Watermark:AddText({
+	Icon = "server",
+	Text = Compkiller.Version,
+});
+
+Window:DrawCategory({
+	Name = "Example"
+});
+
+local NormalTab = Window:DrawTab({
+	Name = "Example Tab",
+	Icon = "apple",
+	EnableScrolling = true
+});
+
+local NormalSection = NormalTab:DrawSection({
+	Name = "Section (Left)",
+	Position = 'left'	
+});
+
+NormalSection:AddToggle({
+	Name = "Infinite Jump",
+	Default = false,
+	Callback = function(v)
+		InfiniteJumpEnabled = v
+	end,
+});
+
+local ESPLoader = nil
+NormalSection:AddToggle({
+	Name = "ESP",
+	Default = false,
+	Callback = function(v)
+		if v then
+			ESPLoader = loadstring(game:HttpGet('https://raw.githubusercontent.com/Lucasfin000/SpaceHub/main/UESP'))()
+		else
+			if ESPLoader and ESPLoader.Disable then
+				ESPLoader:Disable()
+			end
+		end
+	end,
+});
+
+local SpeedSlider
+NormalSection:AddToggle({
+	Name = "Speed",
+	Default = false,
+	Callback = function(v)
+		SpeedEnabled = v
+		
+		local Player = Players.LocalPlayer
+		local Humanoid = Player and Player.Character and Player.Character:FindFirstChildOfClass('Humanoid')
+		
+		if Humanoid then
+			local targetSpeed = v and SpeedSlider:GetValue() or 16
+			sethiddenproperty(Humanoid, "WalkSpeed", targetSpeed)
+		end
+	end,
+});
+
+SpeedSlider = NormalSection:AddSlider({
+	Name = "WalkSpeed Value",
+	Min = 16,
+	Max = 300,
+	Default = 50, 
+	Step = 1,
+	Unit = "WalkSpeed",
+	-- Visible по умолчанию True
+	Callback = function(v)
+		if SpeedEnabled then
+			local Player = Players.LocalPlayer
+			local Humanoid = Player and Player.Character and Player.Character:FindFirstChildOfClass('Humanoid')
+			
+			if Humanoid then
+				sethiddenproperty(Humanoid, "WalkSpeed", v)
+			end
+		end
+	end
+});
+
+
+local NormalSectionRight = NormalTab:DrawSection({
+	Name = "Section (Right)",
+	Position = 'right'
+});
+
+local SingleTab = Window:DrawTab({
+	Name = "Single Tab",
+	Icon = "banana",
+	Type = "Single"
+});
+
+local ContainerTab = Window:DrawContainerTab({
+	Name = "Extract Tabs",
+	Icon = "contact",
+});
+
+local ExtractTab = ContainerTab:DrawTab({
+	Name = "Tab 1",
+	Type = "Double"
+});
+
+local SingleExtractTab = ContainerTab:DrawTab({
+	Name = "Tab 2",
+	Type = "Single",
+	EnableScrolling = true,
+});
+
+
+Window:DrawCategory({
+	Name = "Misc"
+});
+
+local SettingTab = Window:DrawTab({
+	Icon = "settings-3",
+	Name = "Settings",
+	Type = "Single",
+	EnableScrolling = true
+});
+
+local ThemeTab = Window:DrawTab({
+	Icon = "paintbrush",
+	Name = "Themes",
+	Type = "Single"
+});
+
+local Settings = SettingTab:DrawSection({
+	Name = "UI Settings",
+});
+
+Settings:AddToggle({
+	Name = "Alway Show Frame",
+	Default = false,
+	Callback = function(v)
+		Window.AlwayShowTab = v;
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Highlight",
+	Default = Compkiller.Colors.Highlight,
+	Callback = function(v)
+		Compkiller.Colors.Highlight = v;
+		Compkiller:RefreshCurrentColor();
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Toggle Color",
+	Default = Compkiller.Colors.Toggle,
+	Callback = function(v)
+		Compkiller.Colors.Toggle = v;
+		
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Drop Color",
+	Default = Compkiller.Colors.DropColor,
+	Callback = function(v)
+		Compkiller.Colors.DropColor = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Risky",
+	Default = Compkiller.Colors.Risky,
+	Callback = function(v)
+		Compkiller.Colors.Risky = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Mouse Enter",
+	Default = Compkiller.Colors.MouseEnter,
+	Callback = function(v)
+		Compkiller.Colors.MouseEnter = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Block Color",
+	Default = Compkiller.Colors.BlockColor,
+	Callback = function(v)
+		Compkiller.Colors.BlockColor = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Background Color",
+	Default = Compkiller.Colors.BGDBColor,
+	Callback = function(v)
+		Compkiller.Colors.BGDBColor = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Block Background Color",
+	Default = Compkiller.Colors.BlockBackground,
+	Callback = function(v)
+		Compkiller.Colors.BlockBackground = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Stroke Color",
+	Default = Compkiller.Colors.StrokeColor,
+	Callback = function(v)
+		Compkiller.Colors.StrokeColor = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "High Stroke Color",
+	Default = Compkiller.Colors.HighStrokeColor,
+	Callback = function(v)
+		Compkiller.Colors.HighStrokeColor = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Switch Color",
+	Default = Compkiller.Colors.SwitchColor,
+	Callback = function(v)
+		Compkiller.Colors.SwitchColor = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddColorPicker({
+	Name = "Line Color",
+	Default = Compkiller.Colors.LineColor,
+	Callback = function(v)
+		Compkiller.Colors.LineColor = v;
+
+		Compkiller:RefreshCurrentColor(v);
+	end,
+});
+
+Settings:AddButton({
+	Name = "Get Theme",
+	Callback = function()
+		print(Compkiller:GetTheme())
+		
+		Notifier.new({
+			Title = "Notification",
+			Content = "Copied Them Color to your clipboard",
+			Duration = 5,
+			Icon = "rbxassetid://84624587242229"
+		});
+	end,
+});
+
+ThemeTab:DrawSection({
+	Name = "UI Themes"
+}):AddDropdown({
+	Name = "Select Theme",
+	Default = "Default",
+	Values = {
+		"Default",
+		"Dark Green",
+		"Dark Blue",
+		"Purple Rose",
+		"Skeet"
+	},
+	Callback = function(v)
+		Compkiller:SetTheme(v)
+	end,
+})
+
+local ConfigUI = Window:DrawConfig({
+	Name = "Config",
+	Icon = "folder",
+	Config = ConfigManager
+});
+
+ConfigUI:Init();
