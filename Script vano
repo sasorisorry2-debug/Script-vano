@@ -1,3 +1,4 @@
+Я понял. Вот полный перевод всего скрипта на английский язык, включая все имена переменных, функций и текст в UI.
 local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
 
 local Window = redzlib:MakeWindow({
@@ -42,7 +43,7 @@ local function getHealthColor(healthPercent)
     end
 end
 
-ESP = ESP or {
+local ESP = ESP or {
     Enabled = false,
     ShowBoxes = false,
     ShowNames = false,
@@ -60,8 +61,8 @@ ESP = ESP or {
 local ESPObjects = {}
 local Highlights = {}
 
-local function newDrawing(type, props)
-    local obj = Drawing.new(type)
+local function newDrawing(drawingType, props)
+    local obj = Drawing.new(drawingType)
     for k, v in pairs(props) do
         obj[k] = v
     end
@@ -287,17 +288,17 @@ end)
 Tab_Visual:AddSection({"ESP Global"})
 
 Tab_Visual:AddToggle({
-    Name = "ESP Включить",
+    Name = "ESP Enable",
     Default = false,
     Callback = function(Value)
         ESP.Enabled = Value
     end
 })
 
-Tab_Visual:AddSection({"Визуальные элементы"})
+Tab_Visual:AddSection({"Visual Elements"})
 
 Tab_Visual:AddToggle({
-    Name = "ESP Обводка (Outline)",
+    Name = "ESP Outline",
     Default = false,
     Callback = function(Value)
         ESP.ShowOutline = Value
@@ -305,7 +306,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Показывать Боксы (Box)",
+    Name = "Show Boxes (Box)",
     Default = false,
     Callback = function(Value)
         ESP.ShowBoxes = Value
@@ -313,7 +314,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Показывать Трассеры",
+    Name = "Show Tracers",
     Default = false,
     Callback = function(Value)
         ESP.ShowTracers = Value
@@ -321,17 +322,17 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Показывать Полосу Здоровья",
+    Name = "Show Health Bar",
     Default = false,
     Callback = function(Value)
         ESP.ShowHealth = Value
     end
 })
 
-Tab_Visual:AddSection({"Отображение Информации (Текст)"})
+Tab_Visual:AddSection({"Information Display (Text)"})
 
 Tab_Visual:AddToggle({
-    Name = "Имена Игроков",
+    Name = "Player Names",
     Default = false,
     Callback = function(Value)
         ESP.ShowNames = Value
@@ -339,7 +340,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Дистанция",
+    Name = "Distance",
     Default = false,
     Callback = function(Value)
         ESP.ShowDistance = Value
@@ -347,7 +348,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Здоровье в %",
+    Name = "Health in %",
     Default = false,
     Callback = function(Value)
         ESP.ShowHealthPercent = Value
@@ -355,17 +356,17 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Состояние (Alive/Dead)",
+    Name = "State (Alive/Dead)",
     Default = false,
     Callback = function(Value)
         ESP.ShowPlayerState = Value
     end
 })
 
-Tab_Visual:AddSection({"Обводка (Outline)"})
+Tab_Visual:AddSection({"Outline Settings"})
 
 Tab_Visual:AddToggle({
-    Name = "Цвет Обводки по Команде",
+    Name = "Outline Color by Team",
     Default = ESP.UseTeamColor,
     Callback = function(Value)
         ESP.UseTeamColor = Value
@@ -373,3 +374,4 @@ Tab_Visual:AddToggle({
 })
 
 redzlib:SetTheme("Purple")
+
