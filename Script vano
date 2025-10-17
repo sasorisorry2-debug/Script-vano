@@ -1,4 +1,3 @@
-Я понял. Вот полный перевод всего скрипта на английский язык, включая все имена переменных, функций и текст в UI.
 local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao143/Library-ui/refs/heads/main/Redzhubui"))()
 
 local Window = redzlib:MakeWindow({
@@ -66,6 +65,9 @@ local function newDrawing(drawingType, props)
     for k, v in pairs(props) do
         obj[k] = v
     end
+    if obj.AlwaysOnTop ~= nil then
+        obj.AlwaysOnTop = false
+    end
     return obj
 end
 
@@ -96,7 +98,7 @@ local function getBoxScreenPoints(cframe, size)
     return points, visible
 end
 
-local function hideAll(data)
+local function hideAllDrawing(data)
     data.Box.Visible = false
     data.Name.Visible = false
     data.Tracer.Visible = false
@@ -118,13 +120,13 @@ local function updateHighlight(player, character)
         highlight = Instance.new("Highlight")
         highlight.RobloxLocked = true
         highlight.Name = "OutlineESP"
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         highlight.Parent = character
         Highlights[player] = highlight
     end
     
     highlight.Adornee = character
-    highlight.Enabled = ESP.Enabled and ESP.ShowOutline
+    highlight.Enabled = ESP.ShowOutline
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop 
 
     if highlight.Enabled then
         local targetColor
@@ -142,11 +144,11 @@ local function updateHighlight(player, character)
 end
 
 RunService.RenderStepped:Connect(function()
-    local isEnabled = ESP.Enabled
+    local isDrawingEnabled = ESP.Enabled
 
-    if not isEnabled then
+    if not isDrawingEnabled then
         for _, data in pairs(ESPObjects) do
-            hideAll(data)
+            hideAllDrawing(data)
         end
     end
 
@@ -159,7 +161,7 @@ RunService.RenderStepped:Connect(function()
             local humanoid = character and character:FindFirstChildOfClass("Humanoid")
             local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 
-            if isEnabled and character and humanoid and humanoid.Health > 0 and rootPart then
+            if character and humanoid and humanoid.Health > 0 and rootPart then
                 
                 if ESP.ShowOutline then
                     updateHighlight(player, character)
@@ -167,105 +169,111 @@ RunService.RenderStepped:Connect(function()
                     cleanupHighlight(player)
                 end
 
-                local success, cframe, size = pcall(character.GetBoundingBox, character)
-                if success and cframe and size then
-                    local points, visible = getBoxScreenPoints(cframe, size)
-                    if not visible then
-                        if ESPObjects[player] then
-                            hideAll(ESPObjects[player])
-                        end
-                    else
-                        local data = ESPObjects[player] or createESPElements()
-                        ESPObjects[player] = data
-
-                        local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
-                        for _, pt in ipairs(points) do
-                            minX = math.min(minX, pt.X)
-                            minY = math.min(minY, pt.Y)
-                            maxX = math.max(maxX, pt.X)
-                            maxY = math.max(maxY, pt.Y)
-                        end
-
-                        local boxWidth, boxHeight = maxX - minX, maxY - minY
-                        local slimWidth = boxWidth * 0.7
-                        local slimX = minX + (boxWidth - slimWidth) / 2
-                        local healthRatio = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-
-                        local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        local distance = "∞"
-                        if localRoot and rootPart then
-                            distance = math.floor((localRoot.Position - rootPart.Position).Magnitude) .. "m"
-                        end
-                        
-                        local healthPercent = math.floor(humanoid.Health / humanoid.MaxHealth * 100)
-                        local playerState = humanoid.Health > 0 and "Alive" or "Dead"
-
-                        if ESP.ShowBoxes then
-                            data.Box.Visible = true
-                            data.Box.Position = Vector2.new(slimX, minY)
-                            data.Box.Size = Vector2.new(slimWidth, boxHeight)
-                            data.Box.Color = baseColor
+                if isDrawingEnabled then
+                    local success, cframe, size = pcall(character.GetBoundingBox, character)
+                    if success and cframe and size then
+                        local points, visible = getBoxScreenPoints(cframe, size)
+                        if not visible then
+                            if ESPObjects[player] then
+                                hideAllDrawing(ESPObjects[player])
+                            end
                         else
-                            data.Box.Visible = false
-                        end
+                            local data = ESPObjects[player] or createESPElements()
+                            ESPObjects[player] = data
 
-                        if ESP.ShowNames then
-                            data.Name.Visible = true
-                            data.Name.Text = player.Name
-                            data.Name.Position = Vector2.new(slimX + slimWidth/2, minY - 20)
-                            data.Name.Color = COLOR_NAME
-                        else
-                            data.Name.Visible = false
-                        end
+                            local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+                            for _, pt in ipairs(points) do
+                                minX = math.min(minX, pt.X)
+                                minY = math.min(minY, pt.Y)
+                                maxX = math.max(maxX, pt.X)
+                                maxY = math.max(maxY, pt.Y)
+                            end
 
-                        if ESP.ShowTracers then
-                            data.Tracer.Visible = true
-                            data.Tracer.From = screenCenter
-                            data.Tracer.To = Vector2.new(slimX + slimWidth/2, maxY)
-                            data.Tracer.Color = baseColor
-                        else
-                            data.Tracer.Visible = false
-                        end
+                            local boxWidth, boxHeight = maxX - minX, maxY - minY
+                            local slimWidth = boxWidth * 0.7
+                            local slimX = minX + (boxWidth - slimWidth) / 2
+                            local healthRatio = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
 
-                        if ESP.ShowHealth then
-                            local barHeight = boxHeight * healthRatio
-                            data.HealthBar.Visible = true
-                            
-                            if ESP.HealthColorMode == "gradient" and ESP.HealthColorFunction then
-                                data.HealthBar.Color = ESP.HealthColorFunction(healthRatio)
+                            local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            local distance = "∞"
+                            if localRoot and rootPart then
+                                distance = math.floor((localRoot.Position - rootPart.Position).Magnitude) .. "m"
                             end
                             
-                            data.HealthBar.From = Vector2.new(slimX - 6, maxY)
-                            data.HealthBar.To = Vector2.new(slimX - 6, maxY - barHeight)
-                        else
-                            data.HealthBar.Visible = false
-                        end
+                            local healthPercent = math.floor(humanoid.Health / humanoid.MaxHealth * 100)
+                            local playerState = humanoid.Health > 0 and "Alive" or "Dead"
 
-                        local infoParts = {}
-                        
-                        if ESP.ShowDistance then
-                            table.insert(infoParts, distance)
-                        end
-                        if ESP.ShowHealthPercent then
-                            table.insert(infoParts, string.format("%d%%", healthPercent))
-                        end
-                        if ESP.ShowPlayerState then
-                            table.insert(infoParts, playerState)
-                        end
+                            if ESP.ShowBoxes then
+                                data.Box.Visible = true
+                                data.Box.Position = Vector2.new(slimX, minY)
+                                data.Box.Size = Vector2.new(slimWidth, boxHeight)
+                                data.Box.Color = baseColor
+                            else
+                                data.Box.Visible = false
+                            end
 
-                        if #infoParts > 0 then
-                            data.InfoText.Visible = true
-                            data.InfoText.Text = table.concat(infoParts, " | ")
-                            data.InfoText.Position = Vector2.new(slimX + slimWidth/2, maxY + 10) 
-                            data.InfoText.Color = COLOR_INFO_TEXT
-                        else
-                            data.InfoText.Visible = false
+                            if ESP.ShowNames then
+                                data.Name.Visible = true
+                                data.Name.Text = player.Name
+                                data.Name.Position = Vector2.new(slimX + slimWidth/2, minY - 20)
+                                data.Name.Color = COLOR_NAME
+                            else
+                                data.Name.Visible = false
+                            end
+
+                            if ESP.ShowTracers then
+                                data.Tracer.Visible = true
+                                data.Tracer.From = screenCenter
+                                data.Tracer.To = Vector2.new(slimX + slimWidth/2, maxY)
+                                data.Tracer.Color = baseColor
+                            else
+                                data.Tracer.Visible = false
+                            end
+
+                            if ESP.ShowHealth then
+                                local barHeight = boxHeight * healthRatio
+                                data.HealthBar.Visible = true
+                                
+                                if ESP.HealthColorMode == "gradient" and ESP.HealthColorFunction then
+                                    data.HealthBar.Color = ESP.HealthColorFunction(healthRatio)
+                                end
+                                
+                                data.HealthBar.From = Vector2.new(slimX - 6, maxY)
+                                data.HealthBar.To = Vector2.new(slimX - 6, maxY - barHeight)
+                            else
+                                data.HealthBar.Visible = false
+                            end
+
+                            local infoParts = {}
+                            
+                            if ESP.ShowDistance then
+                                table.insert(infoParts, distance)
+                            end
+                            if ESP.ShowHealthPercent then
+                                table.insert(infoParts, string.format("%d%%", healthPercent))
+                            end
+                            if ESP.ShowPlayerState then
+                                table.insert(infoParts, playerState)
+                            end
+
+                            if #infoParts > 0 then
+                                data.InfoText.Visible = true
+                                data.InfoText.Text = table.concat(infoParts, " | ")
+                                data.InfoText.Position = Vector2.new(slimX + slimWidth/2, maxY + 10) 
+                                data.InfoText.Color = COLOR_INFO_TEXT
+                            else
+                                data.InfoText.Visible = false
+                            end
                         end
+                    end
+                else
+                    if ESPObjects[player] then
+                        hideAllDrawing(ESPObjects[player])
                     end
                 end
             else
                 if ESPObjects[player] then
-                    hideAll(ESPObjects[player])
+                    hideAllDrawing(ESPObjects[player])
                 end
                 cleanupHighlight(player)
             end
@@ -288,17 +296,17 @@ end)
 Tab_Visual:AddSection({"ESP Global"})
 
 Tab_Visual:AddToggle({
-    Name = "ESP Enable",
+    Name = "ESP Включить (Box, Text, Line)",
     Default = false,
     Callback = function(Value)
         ESP.Enabled = Value
     end
 })
 
-Tab_Visual:AddSection({"Visual Elements"})
+Tab_Visual:AddSection({"Визуальные элементы"})
 
 Tab_Visual:AddToggle({
-    Name = "ESP Outline",
+    Name = "ESP Обводка (Wallhack)",
     Default = false,
     Callback = function(Value)
         ESP.ShowOutline = Value
@@ -306,7 +314,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Show Boxes (Box)",
+    Name = "Показывать Боксы (Box)",
     Default = false,
     Callback = function(Value)
         ESP.ShowBoxes = Value
@@ -314,7 +322,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Show Tracers",
+    Name = "Показывать Трассеры",
     Default = false,
     Callback = function(Value)
         ESP.ShowTracers = Value
@@ -322,17 +330,17 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Show Health Bar",
+    Name = "Показывать Полосу Здоровья",
     Default = false,
     Callback = function(Value)
         ESP.ShowHealth = Value
     end
 })
 
-Tab_Visual:AddSection({"Information Display (Text)"})
+Tab_Visual:AddSection({"Отображение Информации (Текст)"})
 
 Tab_Visual:AddToggle({
-    Name = "Player Names",
+    Name = "Имена Игроков",
     Default = false,
     Callback = function(Value)
         ESP.ShowNames = Value
@@ -340,7 +348,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Distance",
+    Name = "Дистанция",
     Default = false,
     Callback = function(Value)
         ESP.ShowDistance = Value
@@ -348,7 +356,7 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "Health in %",
+    Name = "Здоровье в %",
     Default = false,
     Callback = function(Value)
         ESP.ShowHealthPercent = Value
@@ -356,17 +364,17 @@ Tab_Visual:AddToggle({
 })
 
 Tab_Visual:AddToggle({
-    Name = "State (Alive/Dead)",
+    Name = "Состояние (Alive/Dead)",
     Default = false,
     Callback = function(Value)
         ESP.ShowPlayerState = Value
     end
 })
 
-Tab_Visual:AddSection({"Outline Settings"})
+Tab_Visual:AddSection({"Настройки Обводки"})
 
 Tab_Visual:AddToggle({
-    Name = "Outline Color by Team",
+    Name = "Цвет Обводки по Команде",
     Default = ESP.UseTeamColor,
     Callback = function(Value)
         ESP.UseTeamColor = Value
@@ -374,4 +382,3 @@ Tab_Visual:AddToggle({
 })
 
 redzlib:SetTheme("Purple")
-
