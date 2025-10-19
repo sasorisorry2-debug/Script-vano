@@ -25,12 +25,9 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- ==== Hitbox Variables ====
 local HitboxPartSize = 20 
 local IsHitboxActive = false 
 local OriginalSizes = {} 
-
--- ==== Hitbox Logic ====
 
 local function ResetPlayerRootPart(player)
     local character = player.Character
@@ -84,8 +81,6 @@ end)
 
 Players.PlayerRemoving:Connect(ResetPlayerRootPart)
 
--- ==== ESP Variables ====
-
 local COLOR_BOX = Color3.fromRGB(255, 0, 0)
 local COLOR_NAME = Color3.fromRGB(255, 255, 255)
 local COLOR_TRACER = Color3.fromRGB(255, 0, 0)
@@ -108,8 +103,6 @@ local ESP = ESP or {
 
 local ESPObjects = {}
 local Highlights = {}
-
--- ==== ESP Drawing Functions ====
 
 local function newDrawing(drawingType, props)
     local obj = Drawing.new(drawingType)
@@ -153,8 +146,6 @@ local function hideAllDrawing(data)
     data.InfoText.Visible = false
 end
 
--- ==== ESP Highlight Fix (Outline) ====
-
 local function cleanupHighlight(player)
     local highlight = Highlights[player]
     if highlight then highlight.Enabled = false end
@@ -182,8 +173,6 @@ local function updateHighlight(player, character)
         highlight.Enabled = false
     end
 end
-
--- ==== ESP Render Loop ====
 
 RunService.RenderStepped:Connect(function()
     local isDrawingEnabled = ESP.Enabled
@@ -299,10 +288,6 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 
--- ==========================================================
--- ==== UI ELEMENTS ====
--- ==========================================================
-
 Tab_Main:AddSection({"Hitbox Features"})
 
 Tab_Main:AddToggle({
@@ -414,4 +399,3 @@ Tab_Visual:AddToggle({
 })
 
 redzlib:SetTheme("Purple")
-atio
