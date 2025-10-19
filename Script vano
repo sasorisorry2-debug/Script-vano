@@ -3,7 +3,7 @@ local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/tbao1
 local Window = redzlib:MakeWindow({
   Title = "RS-HOME",
   SubTitle = "RS-vano",
-  SaveFolder = "testando | redz lib v5.lua"
+  SaveFolder = "redz-hitbox-esp-clean.lua"
 })
 
 Window:AddMinimizeButton({
@@ -22,15 +22,33 @@ local Tab_Visual = Window:MakeTab({"Visual", "eye"})
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local HeadSize = 20 
-local IsHitboxEnabled = false 
+-- ==== Hitbox Variables ====
+local HitboxPartSize = 20 
+local IsHitboxActive = false 
+local OriginalSizes = {} 
+
+-- ==== Hitbox Logic ====
+
+local function ResetPlayerRootPart(player)
+    local character = player.Character
+    if character then
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        local userId = player.UserId
+        if rootPart and OriginalSizes[userId] then
+            rootPart.Size = OriginalSizes[userId]
+            rootPart.Transparency = 1 
+            rootPart.BrickColor = BrickColor.new("Dark grey")
+            rootPart.Material = "SmoothPlastic"
+            rootPart.CanCollide = false
+            OriginalSizes[userId] = nil 
+        end
+    end
+end
 
 RunService.RenderStepped:Connect(function()
-    if not IsHitboxEnabled or HeadSize <= 0 then return end 
-    
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
             local character = player.Character
@@ -39,16 +57,34 @@ RunService.RenderStepped:Connect(function()
                 local rootPart = character:FindFirstChild("HumanoidRootPart")
                 
                 if humanoid and rootPart and humanoid.Health > 0 then
-                    rootPart.Size = Vector3.new(HeadSize, HeadSize, HeadSize)
-                    rootPart.Transparency = 0.95 
-                    rootPart.BrickColor = BrickColor.new("Really red") 
-                    rootPart.Material = "Neon"
-                    rootPart.CanCollide = false
+                    local userId = player.UserId
+                    
+                    if IsHitboxActive and HitboxPartSize > 0 then
+                        if not OriginalSizes[userId] then
+                            OriginalSizes[userId] = rootPart.Size
+                        end
+                        
+                        rootPart.Size = Vector3.new(HitboxPartSize, HitboxPartSize, HitboxPartSize)
+                        rootPart.Transparency = 0.95 
+                        rootPart.BrickColor = BrickColor.new("Really red") 
+                        rootPart.Material = "Neon"
+                        rootPart.CanCollide = false
+                    else
+                        ResetPlayerRootPart(player)
+                    end
+                else
+                    ResetPlayerRootPart(player)
                 end
             end
+        else
+            ResetPlayerRootPart(player)
         end
     end
 end)
+
+Players.PlayerRemoving:Connect(ResetPlayerRootPart)
+
+-- ==== ESP Variables ====
 
 local COLOR_BOX = Color3.fromRGB(255, 0, 0)
 local COLOR_NAME = Color3.fromRGB(255, 255, 255)
@@ -58,41 +94,27 @@ local COLOR_FRIEND = Color3.fromRGB(0, 0, 255)
 local COLOR_ENEMY = Color3.fromRGB(255, 0, 0)
 
 local function getHealthColor(healthPercent)
-    if healthPercent > 0.7 then
-        return Color3.fromRGB(0, 255, 0)
-    elseif healthPercent > 0.3 then
-        return Color3.fromRGB(255, 165, 0)
-    else
-        return Color3.fromRGB(255, 0, 0)
-    end
+    if healthPercent > 0.7 then return Color3.fromRGB(0, 255, 0)
+    elseif healthPercent > 0.3 then return Color3.fromRGB(255, 165, 0)
+    else return Color3.fromRGB(255, 0, 0) end
 end
 
 local ESP = ESP or {
-    Enabled = false,
-    ShowBoxes = false,
-    ShowNames = false,
-    ShowTracers = false,
-    ShowHealth = false,
-    ShowDistance = false,
-    ShowHealthPercent = false,
-    ShowPlayerState = false,
-    ShowOutline = false,
-    UseTeamColor = true,
-    HealthColorMode = "gradient",
-    HealthColorFunction = getHealthColor
+    Enabled = false, ShowBoxes = false, ShowNames = false, ShowTracers = false,
+    ShowHealth = false, ShowDistance = false, ShowHealthPercent = false, 
+    ShowPlayerState = false, ShowOutline = false, UseTeamColor = true,
+    HealthColorMode = "gradient", HealthColorFunction = getHealthColor
 }
 
 local ESPObjects = {}
 local Highlights = {}
 
+-- ==== ESP Drawing Functions ====
+
 local function newDrawing(drawingType, props)
     local obj = Drawing.new(drawingType)
-    for k, v in pairs(props) do
-        obj[k] = v
-    end
-    if obj.AlwaysOnTop ~= nil then
-        obj.AlwaysOnTop = false
-    end
+    for k, v in pairs(props) do obj[k] = v end
+    if obj.AlwaysOnTop ~= nil then obj.AlwaysOnTop = false end
     return obj
 end
 
@@ -114,7 +136,7 @@ local function getBoxScreenPoints(cframe, size)
         for y = -1,1,2 do
             for z = -1,1,2 do
                 local corner = cframe * Vector3.new(half.X*x, half.Y*y, half.Z*z)
-                local screenPos, onScreen = Camera:WorldToViewportPoint(corner)
+                local screenPos, onScreen = Camera:WorldToViewportPoint(corner) 
                 if not onScreen then visible = false end
                 table.insert(points, Vector2.new(screenPos.X, screenPos.Y))
             end
@@ -131,16 +153,16 @@ local function hideAllDrawing(data)
     data.InfoText.Visible = false
 end
 
+-- ==== ESP Highlight Fix (Outline) ====
+
 local function cleanupHighlight(player)
     local highlight = Highlights[player]
-    if highlight and highlight.Parent then
-        highlight:Destroy()
-    end
-    Highlights[player] = nil
+    if highlight then highlight.Enabled = false end
 end
 
 local function updateHighlight(player, character)
     local highlight = Highlights[player]
+    
     if not highlight then
         highlight = Instance.new("Highlight")
         highlight.RobloxLocked = true
@@ -150,31 +172,24 @@ local function updateHighlight(player, character)
     end
     
     highlight.Adornee = character
-    highlight.Enabled = ESP.ShowOutline
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop 
 
-    if highlight.Enabled then
-        local targetColor
-        if ESP.UseTeamColor then
-            targetColor = player.TeamColor.Color
-        else
-            if player.Team == LocalPlayer.Team then
-                targetColor = COLOR_FRIEND
-            else
-                targetColor = COLOR_ENEMY
-            end
-        end
+    if ESP.ShowOutline then
+        highlight.Enabled = true
+        local targetColor = ESP.UseTeamColor and player.TeamColor.Color or (player.Team == LocalPlayer.Team and COLOR_FRIEND or COLOR_ENEMY)
         highlight.FillColor = targetColor
+    else
+        highlight.Enabled = false
     end
 end
+
+-- ==== ESP Render Loop ====
 
 RunService.RenderStepped:Connect(function()
     local isDrawingEnabled = ESP.Enabled
 
     if not isDrawingEnabled then
-        for _, data in pairs(ESPObjects) do
-            hideAllDrawing(data)
-        end
+        for _, data in pairs(ESPObjects) do hideAllDrawing(data) end
     end
 
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
@@ -188,20 +203,14 @@ RunService.RenderStepped:Connect(function()
 
             if character and humanoid and humanoid.Health > 0 and rootPart then
                 
-                if ESP.ShowOutline then
-                    updateHighlight(player, character)
-                else
-                    cleanupHighlight(player)
-                end
+                updateHighlight(player, character) 
 
                 if isDrawingEnabled then
                     local success, cframe, size = pcall(character.GetBoundingBox, character)
                     if success and cframe and size then
                         local points, visible = getBoxScreenPoints(cframe, size)
                         if not visible then
-                            if ESPObjects[player] then
-                                hideAllDrawing(ESPObjects[player])
-                            end
+                            if ESPObjects[player] then hideAllDrawing(ESPObjects[player]) end
                         else
                             local data = ESPObjects[player] or createESPElements()
                             ESPObjects[player] = data
@@ -220,12 +229,8 @@ RunService.RenderStepped:Connect(function()
                             local healthRatio = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
 
                             local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                            local distance = "∞"
-                            if localRoot and rootPart then
-                                distance = math.floor((localRoot.Position - rootPart.Position).Magnitude) .. "m"
-                            end
-                            
-                            local healthPercent = math.floor(humanoid.Health / humanoid.MaxHealth * 100)
+                            local distance = localRoot and rootPart and math.floor((localRoot.Position - rootPart.Position).Magnitude) .. "m" or "∞"
+                            local healthPercent = math.floor(healthRatio * 100)
                             local playerState = humanoid.Health > 0 and "Alive" or "Dead"
 
                             if ESP.ShowBoxes then
@@ -233,73 +238,48 @@ RunService.RenderStepped:Connect(function()
                                 data.Box.Position = Vector2.new(slimX, minY)
                                 data.Box.Size = Vector2.new(slimWidth, boxHeight)
                                 data.Box.Color = baseColor
-                            else
-                                data.Box.Visible = false
-                            end
+                            else data.Box.Visible = false end
 
                             if ESP.ShowNames then
                                 data.Name.Visible = true
                                 data.Name.Text = player.Name
                                 data.Name.Position = Vector2.new(slimX + slimWidth/2, minY - 20)
                                 data.Name.Color = COLOR_NAME
-                            else
-                                data.Name.Visible = false
-                            end
+                            else data.Name.Visible = false end
 
                             if ESP.ShowTracers then
                                 data.Tracer.Visible = true
                                 data.Tracer.From = screenCenter
                                 data.Tracer.To = Vector2.new(slimX + slimWidth/2, maxY)
                                 data.Tracer.Color = baseColor
-                            else
-                                data.Tracer.Visible = false
-                            end
+                            else data.Tracer.Visible = false end
 
                             if ESP.ShowHealth then
                                 local barHeight = boxHeight * healthRatio
                                 data.HealthBar.Visible = true
-                                
-                                if ESP.HealthColorMode == "gradient" and ESP.HealthColorFunction then
-                                    data.HealthBar.Color = ESP.HealthColorFunction(healthRatio)
-                                end
-                                
+                                data.HealthBar.Color = ESP.HealthColorFunction(healthRatio)
                                 data.HealthBar.From = Vector2.new(slimX - 6, maxY)
                                 data.HealthBar.To = Vector2.new(slimX - 6, maxY - barHeight)
-                            else
-                                data.HealthBar.Visible = false
-                            end
+                            else data.HealthBar.Visible = false end
 
                             local infoParts = {}
-                            
-                            if ESP.ShowDistance then
-                                table.insert(infoParts, distance)
-                            end
-                            if ESP.ShowHealthPercent then
-                                table.insert(infoParts, string.format("%d%%", healthPercent))
-                            end
-                            if ESP.ShowPlayerState then
-                                table.insert(infoParts, playerState)
-                            end
+                            if ESP.ShowDistance then table.insert(infoParts, distance) end
+                            if ESP.ShowHealthPercent then table.insert(infoParts, string.format("%d%%", healthPercent)) end
+                            if ESP.ShowPlayerState then table.insert(infoParts, playerState) end
 
                             if #infoParts > 0 then
                                 data.InfoText.Visible = true
                                 data.InfoText.Text = table.concat(infoParts, " | ")
                                 data.InfoText.Position = Vector2.new(slimX + slimWidth/2, maxY + 10) 
                                 data.InfoText.Color = COLOR_INFO_TEXT
-                            else
-                                data.InfoText.Visible = false
-                            end
+                            else data.InfoText.Visible = false end
                         end
                     end
                 else
-                    if ESPObjects[player] then
-                        hideAllDrawing(ESPObjects[player])
-                    end
+                    if ESPObjects[player] then hideAllDrawing(ESPObjects[player]) end
                 end
             else
-                if ESPObjects[player] then
-                    hideAllDrawing(ESPObjects[player])
-                end
+                if ESPObjects[player] then hideAllDrawing(ESPObjects[player]) end
                 cleanupHighlight(player)
             end
         else
@@ -310,21 +290,26 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
     if ESPObjects[player] then
-        for _, obj in pairs(ESPObjects[player]) do
-            obj:Remove()
-        end
+        for _, obj in pairs(ESPObjects[player]) do obj:Remove() end
         ESPObjects[player] = nil
     end
-    cleanupHighlight(player)
+    local highlight = Highlights[player]
+    if highlight then highlight:Destroy() end
+    Highlights[player] = nil
 end)
+
+
+-- ==========================================================
+-- ==== UI ELEMENTS ====
+-- ==========================================================
 
 Tab_Main:AddSection({"Hitbox Features"})
 
 Tab_Main:AddToggle({
     Name = "Включить Хитбокс",
-    Default = IsHitboxEnabled,
+    Default = IsHitboxActive,
     Callback = function(Value)
-        IsHitboxEnabled = Value 
+        IsHitboxActive = Value 
     end
 })
 
@@ -332,10 +317,10 @@ Tab_Main:AddSlider({
     Name = "Размер Хитбокса (0 = Минимум)",
     Min = 0,
     Max = 300,
-    Default = HeadSize,
+    Default = HitboxPartSize,
     Rounding = 0,
     Callback = function(Value)
-        HeadSize = Value
+        HitboxPartSize = Value
     end,
     TextBox = true 
 })
@@ -343,7 +328,7 @@ Tab_Main:AddSlider({
 Tab_Visual:AddSection({"ESP Global"})
 
 Tab_Visual:AddToggle({
-    Name = "ESP Включить (Box, Text, Line)",
+    Name = "ESP Включить",
     Default = false,
     Callback = function(Value)
         ESP.Enabled = Value
@@ -429,3 +414,4 @@ Tab_Visual:AddToggle({
 })
 
 redzlib:SetTheme("Purple")
+atio
