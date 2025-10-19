@@ -397,5 +397,3 @@ Tab_Visual:AddToggle({
         ESP.UseTeamColor = Value
     end
 })
-
-redzlib:SetTheme("Purple")
