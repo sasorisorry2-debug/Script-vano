@@ -95,9 +95,10 @@ local function getHealthColor(healthPercent)
 end
 
 local ESP = ESP or {
-    Enabled = false, ShowBoxes = false, ShowNames = false, ShowTracers = false,
-    ShowHealth = false, ShowDistance = false, ShowHealthPercent = false, 
-    ShowPlayerState = false, ShowOutline = false, UseTeamColor = true,
+    Enabled = false, 
+    ShowBoxes = true, ShowNames = true, ShowTracers = true,
+    ShowHealth = true, ShowDistance = true, ShowHealthPercent = true, 
+    ShowPlayerState = true, ShowOutline = false, UseTeamColor = true,
     HealthColorMode = "gradient", HealthColorFunction = getHealthColor
 }
 
@@ -292,7 +293,7 @@ Tab_Main:AddSection({"Hitbox Features"})
 
 Tab_Main:AddToggle({
     Name = "Включить Хитбокс",
-    Default = IsHitboxActive,
+    Default = false,
     Callback = function(Value)
         IsHitboxActive = Value 
     end
@@ -332,7 +333,7 @@ Tab_Visual:AddToggle({
 
 Tab_Visual:AddToggle({
     Name = "Показывать Боксы (Box)",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         ESP.ShowBoxes = Value
     end
@@ -340,7 +341,7 @@ Tab_Visual:AddToggle({
 
 Tab_Visual:AddToggle({
     Name = "Показывать Трассеры",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         ESP.ShowTracers = Value
     end
@@ -348,7 +349,7 @@ Tab_Visual:AddToggle({
 
 Tab_Visual:AddToggle({
     Name = "Показывать Полосу Здоровья",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         ESP.ShowHealth = Value
     end
@@ -358,7 +359,7 @@ Tab_Visual:AddSection({"Отображение Информации (Текст)
 
 Tab_Visual:AddToggle({
     Name = "Имена Игроков",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         ESP.ShowNames = Value
     end
@@ -366,7 +367,7 @@ Tab_Visual:AddToggle({
 
 Tab_Visual:AddToggle({
     Name = "Дистанция",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         ESP.ShowDistance = Value
     end
@@ -374,7 +375,7 @@ Tab_Visual:AddToggle({
 
 Tab_Visual:AddToggle({
     Name = "Здоровье в %",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         ESP.ShowHealthPercent = Value
     end
@@ -382,7 +383,7 @@ Tab_Visual:AddToggle({
 
 Tab_Visual:AddToggle({
     Name = "Состояние (Alive/Dead)",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         ESP.ShowPlayerState = Value
     end
